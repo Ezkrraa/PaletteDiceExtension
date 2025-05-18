@@ -29,15 +29,24 @@ public static class Parser
     // tokenizes, translates and evaluates an expression.
     public static int? ParseExpression(string expression)
     {
-        if (expression == null)
+        // idc about good practice, bad expressions might crash
+        // which gives me ugly errors I don't want to fix rn
+        try
+        {
+            if (expression == null)
+                return null;
+            List<object>? tokenizedExpr = Tokenizer(expression);
+            if (tokenizedExpr == null)
+                return null;
+            List<object>? RPNExpr = INToRPN(tokenizedExpr);
+            if (RPNExpr == null)
+                return null;
+            return InterpretRPN(RPNExpr);
+        }
+        catch
+        {
             return null;
-        List<object>? tokenizedExpr = Tokenizer(expression);
-        if (tokenizedExpr == null)
-            return null;
-        List<object>? RPNExpr = INToRPN(tokenizedExpr);
-        if (RPNExpr == null)
-            return null;
-        return InterpretRPN(RPNExpr);
+        }
     }
 
 
@@ -140,34 +149,26 @@ public static class Parser
     // takes RPN and returns an integer
     public static int? InterpretRPN(List<object> rpn)
     {
-        try
+        // needs at least 3 items to work
+        if (rpn.Count < 3) return null;
+        int max = rpn.Count;
+        for (int i = 2; i < max; i++)
         {
-
-            // needs at least 3 items to work
-            if (rpn.Count < 3) return null;
-            int max = rpn.Count;
-            for (int i = 2; i < max; i++)
+            if (GetTokenType(rpn[i]) == TokenType.Operator)
             {
-                if (GetTokenType(rpn[i]) == TokenType.Operator)
-                {
-                    int result = Evaluate((int)rpn[i - 2], (int)rpn[i - 1], (char)rpn[i]);
-                    rpn.RemoveRange(i - 2, 3);
-                    rpn.Insert(i - 2, result);
-                    i -= 2;
-                    max -= 2;
-                }
+                int result = Evaluate((int)rpn[i - 2], (int)rpn[i - 1], (char)rpn[i]);
+                rpn.RemoveRange(i - 2, 3);
+                rpn.Insert(i - 2, result);
+                i -= 2;
+                max -= 2;
             }
-            if (max != 1)
-            {
-                Debug.Fail("Did not properly evaluate context");
-                return null;
-            }
-            return (int)rpn[0];
         }
-        catch (ArgumentOutOfRangeException)
+        if (max != 1)
         {
+            Debug.Fail("Did not properly evaluate context");
             return null;
         }
+        return (int)rpn[0];
     }
 
     private static int Evaluate(int ArgA, int ArgB, char Operator)
