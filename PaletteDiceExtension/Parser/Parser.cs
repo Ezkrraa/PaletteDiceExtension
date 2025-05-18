@@ -33,6 +33,7 @@ public static class Parser
         // which gives me ugly errors I don't want to fix rn
         try
         {
+            expression = expression.ToUpperInvariant();
             if (expression == null)
                 return null;
             List<object>? tokenizedExpr = Tokenizer(expression);
@@ -221,9 +222,9 @@ public static class Parser
         {
             '+' => 2,
             '-' => 2,
-            'D' => 3,
             '*' => 3,
             '/' => 3,
+            'D' => 4,
             _ => throw new ArgumentException("Cannot evaluate token '" + item + "'."),
         };
     }

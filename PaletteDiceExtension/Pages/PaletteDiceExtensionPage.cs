@@ -66,7 +66,7 @@ internal sealed partial class PaletteDiceExtensionPage : DynamicListPage
 
         return new ListItem(new AnonymousCommand(() =>
         {
-            SearchText = text;
+            SearchText = "1" + text;
         })
         {
             Icon = icon,
