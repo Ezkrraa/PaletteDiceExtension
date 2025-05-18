@@ -4,11 +4,8 @@
 
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using PaletteDiceExtension.Pages;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using Windows.Gaming.XboxLive.Storage;
+using static PaletteDiceExtension.Parser.Parser;
 
 namespace PaletteDiceExtension;
 
@@ -16,8 +13,10 @@ internal sealed partial class PaletteDiceExtensionPage : DynamicListPage
 {
     public override IconInfo Icon => new IconInfo("🎲");
 
-    private List<DiceResult> diceResults = [];
-    private DiceResult? lastResult = null;
+    // unused for now but will make a history feature later
+    // TODO: make history feature
+    private List<int> diceResults = [];
+    private int? lastResult = null;
     public PaletteDiceExtensionPage()
     {
         Title = "Random dice";
@@ -41,10 +40,13 @@ internal sealed partial class PaletteDiceExtensionPage : DynamicListPage
         }
         else
         {
+            string resultStr = $"{lastResult}";
+            IconInfo iconInfo = new(resultStr.Length <= 2 ? resultStr : "🎲");
             return [
-                new ListItem(new AnonymousCommand(() => UpdateSearchText(SearchText, SearchText)){Result = CommandResult.KeepOpen()}) {Title = $"Rolled: {lastResult.Result} ({lastResult.Quantity}D{lastResult.Range})"},
-                new ListItem(new CopyTextCommand(lastResult.Result.ToString())) {Title = "Copy result"},
-                new ListItem(new ProbabilityGraphPage([(1, 80), (2, 20)])){Title="Probability graph"},
+                new ListItem(new AnonymousCommand(() => UpdateSearchText(SearchText, SearchText)){Result = CommandResult.KeepOpen(), Icon = iconInfo}){Title = $"Rolled: {lastResult}"},
+                new ListItem(new CopyTextCommand(resultStr)) {Title = "Copy result"},
+                // TODO: make a page with probability graph
+                //new ListItem(new ProbabilityGraphPage([(1, 80), (2, 20)])){Title="Probability graph"},
             ];
         }
     }
@@ -74,10 +76,10 @@ internal sealed partial class PaletteDiceExtensionPage : DynamicListPage
 
     public override void UpdateSearchText(string oldSearch, string newSearch)
     {
-        DiceResult? result = GetResult(newSearch);
+        int? result = ParseExpression(newSearch);
         if (result != null)
         {
-            diceResults.Add(result);
+            diceResults.Add(result ?? int.MinValue);
             lastResult = result;
         }
         else
@@ -85,40 +87,5 @@ internal sealed partial class PaletteDiceExtensionPage : DynamicListPage
             lastResult = null;
         }
         RaiseItemsChanged();
-    }
-
-    private static DiceResult? GetResult(string text)
-    {
-        char[] allowedCharacters = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'D'];
-        text = text.ToUpperInvariant();
-        if (string.IsNullOrWhiteSpace(text) || text == "D" || text.Any((ch) => !allowedCharacters.Contains(ch)))
-            return null;
-
-        string[] splitText = text.Split("D");
-        if ((splitText.Length == 2 && text[0] == 'D') || splitText.Length == 1)
-        {
-            bool rSuccess = int.TryParse(splitText.Last(), out int r);
-            if (!rSuccess)
-            {
-                return null;
-            }
-            return new(r, 1);
-        }
-        else if (splitText.Length == 2)
-        {
-
-            bool qSuccess = int.TryParse(splitText[0], out int q);
-            bool rSuccess = int.TryParse(splitText[1], out int r);
-            if (!(rSuccess && qSuccess))
-            {
-                return null;
-            }
-            DiceResult result = new(r, q);
-            return result;
-        }
-        else
-        {
-            return null;
-        }
     }
 }
